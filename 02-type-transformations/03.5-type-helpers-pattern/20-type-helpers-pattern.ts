@@ -1,0 +1,1 @@
+type ReturnWhatIPassIn<DataType> = DataType;
