@@ -1,57 +1,75 @@
 type GetParamKeys<TTranslation extends string> = TTranslation extends ""
-	? []
-	: TTranslation extends `${string}{${infer Param}}${infer Tail}`
-	? [Param, ...GetParamKeys<Tail>]
-	: [];
+  ? []
+  : TTranslation extends `${string}{${infer Param}}${infer Tail}`
+  ? [Param, ...GetParamKeys<Tail>]
+  : [];
 
-type GetParamKeysAsUnion<TTranslation extends string> =
-	GetParamKeys<TTranslation>[number];
-
-const translate = <
-	TTranslations extends Record<string, string>,
-	TKey extends keyof TTranslations
->(
-	translations: TTranslations,
-	key: TKey,
-	...args: GetParamKeysAsUnion<TTranslations[TKey]> extends undefined
-		? []
-		: [arg: Record<GetParamKeysAsUnion<TTranslations[TKey]>, string>]
-) => {
-	const translation = translations[key];
-	const params: any = args[0] || {};
-
-	return translation.replace(/{(\w+)}/g, (_, key) => params[key]);
-};
-
-// Or:
-// const translate = <
-// 	TTranslations extends Record<string, string>,
-// 	TKey extends keyof TTranslations,
-// 	TDynamicArgs = GetParamKeysAsUnion<TTranslations[TKey]>
+//* With two type arguments:
+// function translate<
+//   Translations extends Record<string, string>,
+//   Key extends keyof Translations
 // >(
-// 	translations: TTranslations,
-// 	key: TKey,
-// 	...args: TDynamicArgs extends string
-// 		? [arg: Record<TDynamicArgs, string>]
-// 		: []
-// ) => {
-// 	const translation = translations[key];
-// 	const params: any = args[0] || {};
+//   translations: Translations,
+//   key: Key,
+//   ...args: GetParamKeys<Translations[Key]> extends []
+//     ? []
+//     : [params: Record<GetParamKeys<Translations[Key]>[number], string>]
+// ) {
+//   const translation = translations[key];
+//   const params: any = args[0] || {};
 
-// 	return translation.replace(/{(\w+)}/g, (_, key) => params[key]);
-// };
+//   return translation.replace(/{(\w+)}/g, (_, key) => params[key]);
+// }
+
+//* With two type arguments and a type helper:
+// type GetParamKeysAsUnion<TTranslation extends string> =
+// GetParamKeys<TTranslation>[number];
+
+// function translate<
+//   Translations extends Record<string, string>,
+//   Key extends keyof Translations,
+// >(
+//   translations: Translations,
+//   key: Key,
+//   ...args: GetParamKeysAsUnion<Translations[Key]> extends undefined
+//     ? []
+//     : [params: Record<GetParamKeysAsUnion<Translations[Key]>, string>]
+// ) {
+//   const translation = translations[key];
+//   const params: any = args[0] || {};
+
+//   return translation.replace(/{(\w+)}/g, (_, key) => params[key]);
+// }
+
+//* With three type arguments:
+function translate<
+  Translations extends Record<string, string>,
+  Key extends keyof Translations,
+  ParamKeys extends string[] = GetParamKeys<Translations[Key]>
+>(
+  translations: Translations,
+  key: Key,
+  ...args: ParamKeys extends []
+    ? []
+    : [params: Record<ParamKeys[number], string>]
+) {
+  const translation = translations[key];
+  const params: any = args[0] || {};
+
+  return translation.replace(/{(\w+)}/g, (_, key) => params[key]);
+}
 
 // TESTS
 
 const translations = {
-	title: "Hello, {name}!",
-	subtitle: "You have {count} unread messages.",
-	button: "Click me!",
+  title: "Hello, {name}!",
+  subtitle: "You have {count} unread messages.",
+  button: "Click me!",
 } as const;
 
 const buttonText = translate(translations, "button");
 const subtitle = translate(translations, "subtitle", {
-	count: "2",
+  count: "2",
 });
 // @ts-expect-error
 translate(translations, "title");
